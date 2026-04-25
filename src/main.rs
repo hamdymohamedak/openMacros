@@ -1,5 +1,3 @@
-mod lib;
-
 fn main() {
-    akp!("hello Dev!")
+    ak_macros::say!("ak_macros v1.0");
 }

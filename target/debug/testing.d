@@ -1,1 +1,0 @@
-/media/ak/96BC3336BC330FEB/cargo_projects/test_rust_code/testing/target/debug/testing: /media/ak/96BC3336BC330FEB/cargo_projects/test_rust_code/testing/src/main.rs /media/ak/96BC3336BC330FEB/cargo_projects/test_rust_code/testing/src/my_macro.rs

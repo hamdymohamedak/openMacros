@@ -4,4 +4,4 @@ version = 3
 
 [[package]]
 name = "ak_macros"
-version = "0.2.7"
+version = "1.0.0"
