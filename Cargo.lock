@@ -3,5 +3,5 @@
 version = 3
 
 [[package]]
-name = "ak_macros"
+name = "open_macros"
 version = "1.0.0"
