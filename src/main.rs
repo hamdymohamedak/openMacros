@@ -1,3 +1,3 @@
 fn main() {
-    ak_macros::say!("ak_macros v1.0");
+    open_macros::say!("openMacros v1.0");
 }

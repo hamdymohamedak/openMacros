@@ -1,8 +1,8 @@
-# AK-Macros v1
+# openMacros v1
 
 A script-like macro toolkit for Rust, designed with production-grade structure.
 
-AK-Macros v1 is a full reboot of the project with a clean naming contract, predictable macro signatures, and professional project standards.
+openMacros v1 is a full reboot of the project with a clean naming contract, predictable macro signatures, and professional project standards.
 
 ## v1 API Contract
 
@@ -14,6 +14,7 @@ This release is intentionally **breaking**. Old macros from `0.x` are removed.
 - Resource-first names for file system: `file_write!`, `file_rm!`, `dir_rm!`, `dir_wipe!`
 - Short utility names for transformations: `upper!`, `lower!`, `str_make!`, `pos!`, `neg!`
 - Flow macros use explicit script-like form: `when!`, `repeat!`, `each!`
+- Smart flow helpers: `retry!`, `measure_ms!`, `ensure!`
 
 ### Signature rules
 
@@ -24,7 +25,7 @@ This release is intentionally **breaking**. Old macros from `0.x` are removed.
 ## Project Structure
 
 ```text
-AK-Macros/
+openMacros/
   src/
     lib.rs              # public crate entry
     error.rs            # unified error model
@@ -39,8 +40,6 @@ AK-Macros/
     macro_api.rs
   examples/
     enterprise_job.rs
-  docs/
-    ARCHITECTURE.md
 ```
 
 ## Macro Reference
@@ -56,6 +55,10 @@ AK-Macros/
 - `when!(cond => { ... }, else => { ... })`
 - `repeat!(i in 0 => 10, { ... })`
 - `each!(item in items, { ... })`
+- `retry!(3 => cmd!("echo ok"))?`
+- `retry!(3 => cmd!("echo ok"), delay_ms => 200)?`
+- `let (value, elapsed_ms) = measure_ms!(cmd!("echo ok"));`
+- `ensure!(workers > 0, "workers must be positive");`
 
 ### Shell and system
 
@@ -83,10 +86,10 @@ AK-Macros/
 ## Quick Start
 
 ```rust
-use ak_macros::*;
+use open_macros::*;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    say!("Welcome to AK-Macros v1");
+    say!("Welcome to openMacros v1");
 
     let lang = ask!("Favorite language: ");
     when!(lang == "rust" => {
@@ -109,12 +112,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 ## Advanced Usage
 
 - Use `examples/enterprise_job.rs` as a baseline for automation jobs in large repos.
-- Keep business rules in normal Rust functions; use AK macros for orchestration and readability.
+- Keep business rules in normal Rust functions; use openMacros for orchestration and readability.
 - Enforce CI quality gates (`fmt`, `clippy`, `test`) on every pull request.
 
 ## Web Documentation (VitePress)
 
 ```bash
+cd ../AK-Macros-docs
 npm install
 npm run docs:dev
 ```
@@ -122,6 +126,7 @@ npm run docs:dev
 Build static docs:
 
 ```bash
+cd ../AK-Macros-docs
 npm run docs:build
 ```
 
