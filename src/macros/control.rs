@@ -9,6 +9,13 @@ macro_rules! when {
 }
 
 #[macro_export]
+macro_rules! unless {
+    ($cond:expr => $body:block) => {{
+        if !$cond $body
+    }};
+}
+
+#[macro_export]
 macro_rules! repeat {
     ($var:ident in $start:expr => $end:expr, $body:block) => {{
         for $var in $start..$end $body
@@ -85,5 +92,21 @@ macro_rules! ensure {
         if !$condition {
             return Err($crate::AkError::Validation($message));
         }
+    }};
+}
+
+#[macro_export]
+macro_rules! ensure_msg {
+    ($condition:expr, $($arg:tt)+) => {{
+        if !$condition {
+            return Err($crate::AkError::Parse(format!($($arg)+)));
+        }
+    }};
+}
+
+#[macro_export]
+macro_rules! defer {
+    ($body:block) => {{
+        let _defer_guard = $crate::core::defer(|| $body);
     }};
 }

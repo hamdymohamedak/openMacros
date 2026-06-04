@@ -1,5 +1,26 @@
 # Changelog
 
+## [2.0.0] - 2026-06-04
+
+### Added
+
+- `script!` macro for zero-boilerplate `main` with `AkResult` error handling.
+- `prelude` module with `AkError`, `AkResult`, `ShellOutput`, `bail_err`, `bail_if_fn`.
+- `bail!`, `bail_if!` macros and `ensure_msg!`, `unless!`, `defer!` control helpers.
+- Filesystem: `read!`, `read_bytes!`, `lines!`, `file_read!`, `file_exists!`, `dir_mk!`, `dir_mkp!`, `path_join!`.
+- Environment: `env_get!`, `env_or!`, `env_set!`.
+- String/parsing: `trim!`, `split!`, `parse_int!`, `parse_float!`.
+- Shell: `cmd_ok!` (v1 stdout-only), `cmd_out!`, `cmd_err!`.
+- Extended `AkError` with `Command` and `Parse` variants.
+- Optional features: `serde` (`json_read!`, `json_write!`), `time` (`now!`, `today!`).
+- Examples: `hello_script.rs`; `enterprise_job.rs` migrated to `script!`.
+- Tests: `tests/fs_env.rs`; expanded `tests/macro_api.rs`.
+
+### Changed
+
+- **Breaking:** `cmd!` now fails when the shell command exits with a non-zero status.
+- Version bumped to 2.0.0; README and API contract updated for v2.
+
 ## [1.0.0] - 2026-04-25
 
 ### Changed

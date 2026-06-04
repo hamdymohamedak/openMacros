@@ -1,6 +1,6 @@
 use open_macros::*;
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
+script! {
     say!("Starting enterprise automation job");
 
     repeat!(step in 1 => 4, {
@@ -11,9 +11,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     when!(output == "pipeline_ok" => {
         say!("pipeline health: {}", output);
     }, else => {
-        say!("pipeline health check failed");
+        bail!("pipeline health check failed");
     });
 
     file_write!("job_report.txt", format!("result={output}\n"))?;
-    Ok(())
 }

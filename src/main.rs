@@ -1,3 +1,5 @@
-fn main() {
-    open_macros::say!("openMacros v1.0");
+use open_macros::*;
+
+script! {
+    say!("openMacros v2.0");
 }

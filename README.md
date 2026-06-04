@@ -1,95 +1,60 @@
-# openMacros v1
+# openMacros v2
 
-A script-like macro toolkit for Rust, designed with production-grade structure.
+A script-like macro toolkit for Rust: short, readable automation code with Rust speed and memory efficiency.
 
-openMacros v1 is a full reboot of the project with a clean naming contract, predictable macro signatures, and professional project standards.
+openMacros v2 extends the v1 contract with `script!`, `prelude`, richer filesystem/env helpers, stricter shell behavior, and optional JSON/time features.
 
-## v1 API Contract
-
-This release is intentionally **breaking**. Old macros from `0.x` are removed.
+## v2 API Contract
 
 ### Naming rules
 
-- Verb-first names for actions: `say!`, `ask!`, `cmd!`, `open!`
-- Resource-first names for file system: `file_write!`, `file_rm!`, `dir_rm!`, `dir_wipe!`
-- Short utility names for transformations: `upper!`, `lower!`, `str_make!`, `pos!`, `neg!`
-- Flow macros use explicit script-like form: `when!`, `repeat!`, `each!`
-- Smart flow helpers: `retry!`, `measure_ms!`, `ensure!`
+- Verb-first actions: `say!`, `ask!`, `cmd!`, `open!`, `bail!`
+- Resource-first filesystem: `file_read!`, `file_write!`, `dir_mk!`, `dir_mkp!`
+- Short utilities: `trim!`, `split!`, `parse_int!`, `parse_float!`
+- Flow macros: `when!`, `unless!`, `repeat!`, `each!`, `defer!`
+- Smart helpers: `retry!`, `measure_ms!`, `ensure!`, `ensure_msg!`
+- Entry: `script!` generates `main` with `AkResult` error handling
 
 ### Signature rules
 
-- Any macro that can fail returns `AkResult<_>`.
-- Pure transform/value macros return direct values.
-- Conditional/loop macros keep Rust-native block semantics to stay readable and safe.
+- Fallible operations return `AkResult<_>`.
+- `cmd!` fails on non-zero exit codes (use `cmd_ok!` for v1 stdout-only behavior).
+- Pure transforms return values directly.
+- Optional features: `serde` (`json_read!`, `json_write!`), `time` (`now!`, `today!`).
 
 ## Project Structure
 
 ```text
 openMacros/
   src/
-    lib.rs              # public crate entry
-    error.rs            # unified error model
-    core.rs             # internal helper runtime
+    lib.rs
+    error.rs
+    core.rs
     macros/
-      control.rs        # when/repeat/each
-      io.rs             # say/ask
-      fs.rs             # file_* and dir_* macros
-      system.rs         # cmd/open/os/date macros
-      string.rs         # str/upper/lower/pos/neg
+      entry.rs        # script!, bail!, bail_if!
+      control.rs
+      io.rs
+      fs.rs
+      env.rs
+      system.rs
+      string.rs
+      json.rs         # feature serde
+      time.rs         # feature time
   tests/
     macro_api.rs
+    fs_env.rs
   examples/
     enterprise_job.rs
+    hello_script.rs
 ```
-
-## Macro Reference
-
-### Output and input
-
-- `say!(...)` prints like `println!`.
-- `ask!(prompt)` returns trimmed `String`.
-
-### Control flow
-
-- `when!(cond => { ... })`
-- `when!(cond => { ... }, else => { ... })`
-- `repeat!(i in 0 => 10, { ... })`
-- `each!(item in items, { ... })`
-- `retry!(3 => cmd!("echo ok"))?`
-- `retry!(3 => cmd!("echo ok"), delay_ms => 200)?`
-- `let (value, elapsed_ms) = measure_ms!(cmd!("echo ok"));`
-- `ensure!(workers > 0, "workers must be positive");`
-
-### Shell and system
-
-- `cmd!("ls")` runs with default shell (`sh` on Unix, `cmd` on Windows).
-- `cmd!("sh", "ls -la")` runs with explicit shell.
-- `os!()` returns current OS.
-- `open!("https://example.com")` opens URL in default browser.
-- `month_now!()`, `year_now!()` return date values from system time.
-
-### Filesystem
-
-- `file_write!("/tmp/a.txt", "hello")`
-- `file_rm!("/tmp/a.txt")`
-- `dir_rm!("/tmp/empty")`
-- `dir_wipe!("/tmp/non-empty")`
-
-### String and number helpers
-
-- `str_make!("hello") -> String`
-- `upper!("hello") -> String`
-- `lower!("HELLO") -> String`
-- `pos!(5) -> AkResult<usize>`
-- `neg!(-3) -> AkResult<isize>`
 
 ## Quick Start
 
 ```rust
 use open_macros::*;
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
-    say!("Welcome to openMacros v1");
+script! {
+    say!("Welcome to openMacros v2");
 
     let lang = ask!("Favorite language: ");
     when!(lang == "rust" => {
@@ -102,45 +67,90 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         say!("tick {}", i);
     });
 
-    file_write!("example.txt", "hello from v1")?;
+    file_write!("example.txt", "hello from v2")?;
     let out = cmd!("echo done")?;
     say!("command output: {}", out);
-    Ok(())
 }
 ```
 
-## Advanced Usage
+For explicit types without a glob import, use `open_macros::prelude::{AkError, AkResult, ...}`.
 
-- Use `examples/enterprise_job.rs` as a baseline for automation jobs in large repos.
-- Keep business rules in normal Rust functions; use openMacros for orchestration and readability.
-- Enforce CI quality gates (`fmt`, `clippy`, `test`) on every pull request.
+## Macro Reference
 
-## Web Documentation (VitePress)
+### Entry and errors
 
-```bash
-cd ../AK-Macros-docs
-npm install
-npm run docs:dev
+- `script! { ... }` — `main` with automatic error print + exit code 1
+- `bail!("message")` — early return with validation error
+- `bail_if!(cond, "message")`
+- `bail_err("message")?` / `bail_if_fn(cond, "message")?` — function form in `prelude`
+
+### Output and input
+
+- `say!(...)`, `ask!(prompt)`
+
+### Control flow
+
+- `when!`, `unless!`, `repeat!`, `each!`, `retry!`, `measure_ms!`, `ensure!`, `ensure_msg!`, `defer!`
+
+### Shell and system
+
+- `cmd!("ls")` — stdout on success, fails on non-zero exit
+- `cmd_ok!("ls")` — stdout only (v1 behavior)
+- `cmd_out!`, `cmd_err!` — stdout / stderr helpers
+- `os!()`, `open!(url)`, `month_now!()`, `year_now!()`
+- `now!()`, `today!()` with feature `time`
+
+### Filesystem
+
+- `file_read!`, `file_write!`, `file_exists!`, `file_rm!`
+- `read!`, `read_bytes!`, `lines!`
+- `dir_mk!`, `dir_mkp!`, `dir_rm!`, `dir_wipe!`
+- `path_join!("a", "b")`
+
+### Environment
+
+- `env_get!("KEY")`, `env_or!("KEY", "default")`, `env_set!("KEY", "value")`
+
+### String and numbers
+
+- `str_make!`, `upper!`, `lower!`, `trim!`, `split!`
+- `parse_int!`, `parse_float!`, `pos!`, `neg!`
+
+### JSON (feature `serde`)
+
+- `json_read!("config.json", Config)?`
+- `json_write!("out.json", &value)?`
+
+## Features
+
+```toml
+[dependencies]
+open_macros = { version = "2", features = ["serde", "time"] }
 ```
 
-Build static docs:
+- `serde` — JSON read/write macros
+- `time` — accurate `now!` / `today!` via chrono
 
-```bash
-cd ../AK-Macros-docs
-npm run docs:build
-```
+## Migration v1 → v2
 
-## Migration from 0.x
-
-- No compatibility layer is provided in v1.
-- Replace old macro names directly with the new contract above.
-- Adopt `Result` handling for operations that can fail.
+| v1 | v2 |
+|----|-----|
+| `fn main() -> Result<(), Box<dyn Error>>` | `script! { ... }` |
+| `cmd!` ignores exit code | `cmd!` fails on non-zero; use `cmd_ok!` for old behavior |
+| Manual `Ok(())` | implicit in `script!` |
+| — | `file_read!`, `env_get!`, `unless!`, `bail!`, etc. |
 
 ## Quality
 
-- `cargo fmt --check`
-- `cargo clippy --all-targets --all-features -- -D warnings`
-- `cargo test --all-targets`
+```bash
+cargo fmt --check
+cargo clippy --all-targets --all-features -- -D warnings
+cargo test --all-targets --all-features
+```
+
+## Agent skill
+
+Cursor agents can load `.cursor/skills/openmacros/SKILL.md` for macro API rules, migration notes, and contribution patterns.
 
 ## License
 

@@ -1,6 +1,6 @@
 [package]
 name = "open_macros"
-version = "1.0.0"
+version = "2.0.0"
 edition = "2021"
 readme = "README.md"
 authors = ["Hamdy-Mohamedak <mohameddhamdy407@gmail.com>"]
@@ -22,6 +22,8 @@ rust-version = "1.74"
 default = ["std"]
 std = []
 advanced = []
+serde = ["dep:serde", "dep:serde_json"]
+time = ["dep:chrono"]
 
 [lints.rust]
 rust_2018_idioms = "deny"
@@ -32,3 +34,6 @@ unsafe_op_in_unsafe_fn = "deny"
 all = "deny"
 
 [dependencies]
+serde = { version = "1", optional = true, features = ["derive"] }
+serde_json = { version = "1", optional = true }
+chrono = { version = "0.4", optional = true, default-features = false, features = ["clock", "std"] }

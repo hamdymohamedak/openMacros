@@ -31,6 +31,12 @@ fn control_flow_macros_work() {
         with_else.push(2);
     });
     assert_eq!(with_else, vec![2]);
+
+    let mut unless_ran = false;
+    unless!(true => {
+        unless_ran = true;
+    });
+    assert!(!unless_ran);
 }
 
 #[test]
@@ -55,6 +61,22 @@ fn time_macros_return_reasonable_values() {
     assert!((1..=13).contains(&month));
     let year = year_now!();
     assert!(year >= 1970);
+}
+
+#[test]
+fn cmd_fails_on_non_zero_exit() {
+    let result = cmd!("sh -c 'exit 1'");
+    assert!(result.is_err());
+    match result.expect_err("command should fail") {
+        AkError::Command { status, .. } => assert_ne!(status, 0),
+        other => panic!("expected command error, got {other:?}"),
+    }
+}
+
+#[test]
+fn cmd_ok_ignores_exit_status() {
+    let output = cmd_ok!("sh -c 'echo still_here; exit 1'").expect("stdout only");
+    assert_eq!(output, "still_here");
 }
 
 #[test]
@@ -99,6 +121,13 @@ fn measure_ms_macro_returns_value_and_elapsed_time() {
     assert!(elapsed_ms <= 5_000);
 }
 
+#[test]
+fn bail_err_and_bail_if_fn_work() {
+    assert!(open_macros::bail_err("fail").is_err());
+    assert!(open_macros::bail_if_fn(true, "fail").is_err());
+    open_macros::bail_if_fn(false, "fail").expect("condition false");
+}
+
 fn guarded_positive(input: i64) -> AkResult<usize> {
     ensure!(input > 0, "input must be greater than zero");
     pos!(input)
@@ -113,4 +142,56 @@ fn ensure_macro_validates_and_exits_early() {
         AkError::Validation(message) => assert_eq!(message, "input must be greater than zero"),
         _ => panic!("expected validation error"),
     }
+}
+
+#[test]
+fn defer_runs_on_scope_exit() {
+    let mut ran = false;
+    {
+        defer!({
+            ran = true;
+        });
+    }
+    assert!(ran);
+}
+
+#[cfg(feature = "serde")]
+#[test]
+fn json_macros_round_trip() {
+    use serde::{Deserialize, Serialize};
+
+    #[derive(Debug, Serialize, Deserialize, PartialEq)]
+    struct Demo {
+        name: String,
+        count: u32,
+    }
+
+    fn run() -> AkResult<()> {
+        let path = "target/om-json-test.json";
+        let sample = Demo {
+            name: String::from("openMacros"),
+            count: 2,
+        };
+        json_write!(path, &sample)?;
+        let loaded: Demo = json_read!(path, Demo)?;
+        assert_eq!(loaded, sample);
+        let _ = file_rm!(path);
+        Ok(())
+    }
+
+    run().expect("json macros should round-trip");
+}
+
+#[cfg(feature = "time")]
+#[test]
+fn time_feature_macros_work() {
+    fn run() -> AkResult<()> {
+        let stamp = now!()?;
+        assert!(stamp.contains('T'));
+        let day = today!()?;
+        assert_eq!(day.len(), 10);
+        Ok(())
+    }
+
+    run().expect("time macros should work");
 }
