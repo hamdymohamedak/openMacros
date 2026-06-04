@@ -7,6 +7,11 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::error::{AkError, AkResult};
 
+pub mod text;
+
+#[cfg(feature = "async")]
+pub mod async_ops;
+
 pub struct ShellOutput {
     pub stdout: String,
     pub stderr: String,
@@ -43,7 +48,7 @@ fn shell_command(shell: &str, command: &str) -> std::io::Result<std::process::Ou
     Command::new(shell).arg("-c").arg(command).output()
 }
 
-fn output_to_strings(output: &std::process::Output) -> (String, String, i32) {
+pub(crate) fn output_to_strings(output: &std::process::Output) -> (String, String, i32) {
     let stdout = String::from_utf8_lossy(&output.stdout).trim().to_owned();
     let stderr = String::from_utf8_lossy(&output.stderr).trim().to_owned();
     let status = output.status.code().unwrap_or(-1);
@@ -94,7 +99,7 @@ pub fn run_default_shell_stderr(command: &str) -> AkResult<String> {
     }
 }
 
-fn default_shell() -> &'static str {
+pub(crate) fn default_shell() -> &'static str {
     #[cfg(target_os = "windows")]
     {
         "cmd"

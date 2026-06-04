@@ -1,8 +1,8 @@
 ---
 name: openmacros
 description: >-
-  Writes and maintains Rust automation using the open_macros crate (openMacros v2):
-  script!, bail!, filesystem/env/shell macros, AkResult errors, optional serde/time.
+  Writes and maintains Rust automation using open_macros (openMacros v2.0):
+  script!, text/tpl/regex macros, script_async!, AkResult, optional serde/time/async.
   Use when editing this repo, adding CLI scripts, migrating v1→v2, or when the user
   mentions openMacros, open_macros, script-like Rust, or short Rust automation.
 ---
@@ -24,16 +24,19 @@ Rust crate `open_macros` (package name) / **openMacros** (project). Goal: Python
 open_macros = "2"
 
 # Optional:
-open_macros = { version = "2", features = ["serde", "time"] }
+open_macros = { version = "2.0", features = ["text", "async", "serde", "time"] }
 ```
 
 | Feature | Enables |
 |---------|---------|
+| *(core)* | `contains!`, `replace!`, `replace_all!`, `tpl!` |
+| `text` | `regex_match!`, `regex_find!`, `regex_replace!`, `regex_split!` |
+| `async` | `script_async!`, `sleep_async!`, `spawn!`, `file_*_async!`, `cmd_async!` |
+| `advanced` | `text` + `async` |
 | `serde` | `json_read!`, `json_write!` |
 | `time` | `now!`, `today!` (chrono) |
-| `advanced` | Reserved; unused |
 
-MSRV: **1.74**. Edition **2021**. Core uses **std only** (no required deps).
+MSRV: **1.74**. Edition **2021**. Default build has no required deps.
 
 ## Default agent workflow
 
@@ -154,6 +157,28 @@ pub enum AkError {
 | `parse_int!` / `parse_float!` | `AkResult<i64>` / `AkResult<f64>` |
 | `pos!(n)` / `neg!(n)` | `AkResult<usize>` / `AkResult<isize>` |
 
+### Text (core + feature `text`)
+
+| Macro | Returns | Feature |
+|-------|---------|---------|
+| `contains!(hay, needle)` | `bool` | core |
+| `replace!(s, from, to)` | `String` | core (first match) |
+| `replace_all!(s, from, to)` | `String` | core |
+| `tpl!("Hi {{k}}", k = v)` | `AkResult<String>` | core |
+| `regex_match!` / `regex_find!` | `AkResult<...>` | `text` |
+| `regex_replace!` / `regex_split!` | `AkResult<...>` | `text` |
+
+### Async (feature `async`)
+
+Use `script_async!` instead of `script!`. `sleep_async!(ms)` already awaits internally—do not write `.await` after it.
+
+| Macro | Notes |
+|-------|-------|
+| `script_async!` | Tokio main + `AkResult` |
+| `sleep_async!(ms)` | No trailing `.await` |
+| `spawn! { }` | Background task |
+| `file_read_async!` / `file_write_async!` / `cmd_async!` | Use `.await?` |
+
 ### JSON (feature `serde`)
 
 ```rust
@@ -193,15 +218,17 @@ src/error.rs        → AkError, AkResult
 2. **`ensure!` / `bail!` need `AkResult` return type** in the enclosing fn—not `()` or `Result<(), Box<dyn Error>>`.
 3. **`cmd!` on Windows** uses `cmd` with `-c` pattern like Unix `sh -c`; test cross-platform or use `cfg`.
 4. **`prelude` does not import macros** — always `use open_macros::*` for macro names in scope.
-5. **No async, no HTTP** in v2.0 core—do not invent `tokio`/`reqwest` wrappers unless user adds a new feature.
-6. **Clippy `all = deny`** in crate—new code must be warning-free.
+5. **Async only with feature `async`**; enable in `Cargo.toml`. No HTTP yet (planned 2.2+).
+6. **`sleep_async!` is not a Future** — never `sleep_async!(n).await`.
+7. **Clippy `all = deny`** in crate—new code must be warning-free.
 
 ## Examples in repo
 
 - `examples/hello_script.rs` — FS + `unless!`
 - `examples/enterprise_job.rs` — `cmd!`, `when!`, `bail!`
-- `tests/macro_api.rs` — macro contracts
-- `tests/fs_env.rs` — FS/env/parse
+- `examples/async_fetch.rs` — `script_async!`
+- `tests/text.rs`, `tests/async.rs` — text/async macros
+- `tests/macro_api.rs`, `tests/fs_env.rs`
 
 ## Anti-patterns
 

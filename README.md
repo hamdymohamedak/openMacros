@@ -2,143 +2,109 @@
 
 A script-like macro toolkit for Rust: short, readable automation code with Rust speed and memory efficiency.
 
-openMacros v2 extends the v1 contract with `script!`, `prelude`, richer filesystem/env helpers, stricter shell behavior, and optional JSON/time features.
-
-## v2 API Contract
-
-### Naming rules
-
-- Verb-first actions: `say!`, `ask!`, `cmd!`, `open!`, `bail!`
-- Resource-first filesystem: `file_read!`, `file_write!`, `dir_mk!`, `dir_mkp!`
-- Short utilities: `trim!`, `split!`, `parse_int!`, `parse_float!`
-- Flow macros: `when!`, `unless!`, `repeat!`, `each!`, `defer!`
-- Smart helpers: `retry!`, `measure_ms!`, `ensure!`, `ensure_msg!`
-- Entry: `script!` generates `main` with `AkResult` error handling
-
-### Signature rules
-
-- Fallible operations return `AkResult<_>`.
-- `cmd!` fails on non-zero exit codes (use `cmd_ok!` for v1 stdout-only behavior).
-- Pure transforms return values directly.
-- Optional features: `serde` (`json_read!`, `json_write!`), `time` (`now!`, `today!`).
-
-## Project Structure
-
-```text
-openMacros/
-  src/
-    lib.rs
-    error.rs
-    core.rs
-    macros/
-      entry.rs        # script!, bail!, bail_if!
-      control.rs
-      io.rs
-      fs.rs
-      env.rs
-      system.rs
-      string.rs
-      json.rs         # feature serde
-      time.rs         # feature time
-  tests/
-    macro_api.rs
-    fs_env.rs
-  examples/
-    enterprise_job.rs
-    hello_script.rs
-```
-
 ## Quick Start
 
 ```rust
 use open_macros::*;
 
 script! {
-    say!("Welcome to openMacros v2");
+    say!("Welcome to openMacros");
 
-    let lang = ask!("Favorite language: ");
-    when!(lang == "rust" => {
-        say!("Great choice.");
-    }, else => {
-        say!("Give Rust a shot.");
+    let msg = tpl!("Hello {{who}}!", who = "Rust")?;
+    when!(contains!(msg, "Rust") => {
+        say!("{}", msg);
     });
 
-    repeat!(i in 0 => 3, {
-        say!("tick {}", i);
-    });
-
-    file_write!("example.txt", "hello from v2")?;
+    file_write!("example.txt", "hello")?;
     let out = cmd!("echo done")?;
-    say!("command output: {}", out);
+    say!("{}", out);
 }
 ```
-
-For explicit types without a glob import, use `open_macros::prelude::{AkError, AkResult, ...}`.
-
-## Macro Reference
-
-### Entry and errors
-
-- `script! { ... }` — `main` with automatic error print + exit code 1
-- `bail!("message")` — early return with validation error
-- `bail_if!(cond, "message")`
-- `bail_err("message")?` / `bail_if_fn(cond, "message")?` — function form in `prelude`
-
-### Output and input
-
-- `say!(...)`, `ask!(prompt)`
-
-### Control flow
-
-- `when!`, `unless!`, `repeat!`, `each!`, `retry!`, `measure_ms!`, `ensure!`, `ensure_msg!`, `defer!`
-
-### Shell and system
-
-- `cmd!("ls")` — stdout on success, fails on non-zero exit
-- `cmd_ok!("ls")` — stdout only (v1 behavior)
-- `cmd_out!`, `cmd_err!` — stdout / stderr helpers
-- `os!()`, `open!(url)`, `month_now!()`, `year_now!()`
-- `now!()`, `today!()` with feature `time`
-
-### Filesystem
-
-- `file_read!`, `file_write!`, `file_exists!`, `file_rm!`
-- `read!`, `read_bytes!`, `lines!`
-- `dir_mk!`, `dir_mkp!`, `dir_rm!`, `dir_wipe!`
-- `path_join!("a", "b")`
-
-### Environment
-
-- `env_get!("KEY")`, `env_or!("KEY", "default")`, `env_set!("KEY", "value")`
-
-### String and numbers
-
-- `str_make!`, `upper!`, `lower!`, `trim!`, `split!`
-- `parse_int!`, `parse_float!`, `pos!`, `neg!`
-
-### JSON (feature `serde`)
-
-- `json_read!("config.json", Config)?`
-- `json_write!("out.json", &value)?`
 
 ## Features
 
 ```toml
 [dependencies]
-open_macros = { version = "2", features = ["serde", "time"] }
+open_macros = "2.0"
+
+# Optional:
+open_macros = { version = "2.0", features = ["text", "async", "serde", "time"] }
 ```
 
-- `serde` — JSON read/write macros
-- `time` — accurate `now!` / `today!` via chrono
+| Feature | Description |
+|---------|-------------|
+| *(default)* | Core macros: I/O, FS, env, shell, flow, text (`contains`, `replace`, `tpl`) |
+| `text` | Regex: `regex_match!`, `regex_find!`, `regex_replace!`, `regex_split!` |
+| `async` | Tokio: `script_async!`, `sleep_async!`, `spawn!`, async file/shell |
+| `advanced` | Enables `text` + `async` |
+| `serde` | `json_read!`, `json_write!` |
+| `time` | `now!`, `today!` |
 
-## Migration v1 → v2
+## Text macros
 
-| v1 | v2 |
-|----|-----|
-| `fn main() -> Result<(), Box<dyn Error>>` | `script! { ... }` |
-| `cmd!` ignores exit code | `cmd!` fails on non-zero; use `cmd_ok!` for old behavior |
-| Manual `Ok(())` | implicit in `script!` |
-| — | `file_read!`, `env_get!`, `unless!`, `bail!`, etc. |
+| Macro | Returns |
+|-------|---------|
+| `contains!(hay, needle)` | `bool` |
+| `replace!(s, from, to)` | `String` (first match) |
+| `replace_all!(s, from, to)` | `String` |
+| `tpl!("Hi {{name}}", name = x)` | `AkResult<String>` |
+
+With feature `text`:
+
+| Macro | Returns |
+|-------|---------|
+| `regex_match!(s, pat)` | `AkResult<bool>` |
+| `regex_find!(s, pat)` | `AkResult<Option<String>>` |
+| `regex_replace!(s, pat, repl)` | `AkResult<String>` |
+| `regex_split!(s, pat)` | `AkResult<Vec<String>>` |
+
+## Async macros (feature `async`)
+
+```rust
+use open_macros::*;
+
+script_async! {
+    sleep_async!(50);
+    file_write_async!("target/a.txt", "data").await?;
+    let body = file_read_async!("target/a.txt").await?;
+    let out = cmd_async!("echo ok").await?;
+    say!("{}", body);
+}
+```
+
+| Macro | Notes |
+|-------|-------|
+| `script_async! { }` | `#[tokio::main]` + `AkResult` error handling |
+| `sleep_async!(ms)` | Sleeps inline (no extra `.await`) |
+| `spawn! { ... }` | `tokio::spawn` background task |
+| `file_read_async!` / `file_write_async!` | Tokio FS |
+| `cmd_async!` | Fails on non-zero exit (like `cmd!`) |
+
+## Entry and errors
+
+- `script! { ... }` — sync `main` wrapper
+- `bail!`, `bail_if!`, `ensure!`, `ensure_msg!`
+- `prelude::{AkError, AkResult, ...}` for types
+
+## Project structure
+
+```text
+src/
+  core.rs, core/text.rs, core/async_ops.rs
+  macros/entry.rs, text.rs, async.rs, ...
+examples/
+  hello_script.rs, enterprise_job.rs, async_fetch.rs
+tests/
+  macro_api.rs, fs_env.rs, text.rs, async.rs
+```
+
+## Migration
+
+| From | To |
+|------|-----|
+| v1 `main` + `Box<dyn Error>` | `script! { }` |
+| v1 `cmd!` (ignore exit) | `cmd_ok!` or v2 `cmd!` |
+| — | v2.0 `tpl!`, `contains!`, `script_async!` |
 
 ## Quality
 
@@ -150,7 +116,7 @@ cargo test --all-targets --all-features
 
 ## Agent skill
 
-Cursor agents can load `.cursor/skills/openmacros/SKILL.md` for macro API rules, migration notes, and contribution patterns.
+See `SKILL.md` or `.cursor/skills/openmacros/SKILL.md`.
 
 ## License
 

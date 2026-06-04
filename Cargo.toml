@@ -21,7 +21,16 @@ rust-version = "1.74"
 [features]
 default = ["std"]
 std = []
-advanced = []
+advanced = ["text", "async"]
+text = ["dep:regex"]
+async = [
+    "dep:tokio",
+    "tokio/rt-multi-thread",
+    "tokio/macros",
+    "tokio/fs",
+    "tokio/process",
+    "tokio/time",
+]
 serde = ["dep:serde", "dep:serde_json"]
 time = ["dep:chrono"]
 
@@ -34,6 +43,11 @@ unsafe_op_in_unsafe_fn = "deny"
 all = "deny"
 
 [dependencies]
+regex = { version = "1", optional = true }
+tokio = { version = "1", optional = true }
 serde = { version = "1", optional = true, features = ["derive"] }
 serde_json = { version = "1", optional = true }
 chrono = { version = "0.4", optional = true, default-features = false, features = ["clock", "std"] }
+
+[dev-dependencies]
+tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
